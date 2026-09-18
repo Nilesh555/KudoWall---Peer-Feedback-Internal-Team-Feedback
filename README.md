@@ -315,7 +315,5 @@ API development, frontend communication and UI development.
 
 ## Author
 
-Your Name: Chudasama Nilesh
-
 GitHub: https://github.com/Nilesh555
 LinkedIn: https://www.linkedin.com/in/chudasama-nilesh-7bb647275/
