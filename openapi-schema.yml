@@ -1,0 +1,1668 @@
+openapi: 3.0.3
+info:
+  title: Internal Team Feedback & Peer Kudos Wall API
+  version: 1.0.0
+  description: "RESTful API backend for employee recognition, peer kudos wall, emoji
+    reactions, and monthly department leaderboard analytics.\n\n### Key Features\n*
+    **Authentication**: JWT authentication with 15-minute access tokens and 7-day
+    refresh tokens delivered via HTTP-only cookies with automatic rotation and blacklisting.\n*
+    **Users & Profiles**: Complete user directory, autocomplete search for peer recognition,
+    and personal profile analytics.\n* **Kudos Feed & Transfer**: Atomic points transfer
+    with database row locking (SELECT FOR UPDATE) preventing race conditions and negative
+    allowances.\n* **Reactions**: Interactive emoji reactions (+1, \U0001F44F, \U0001F525)
+    with toggle support.\n* **Leaderboard**: Real-time monthly rankings calculated
+    through database-level ORM aggregation with department filtering."
+paths:
+  /api/accounts/departments/:
+    get:
+      operationId: accounts_departments_list
+      description: Retrieves a list of all company departments with user counts.
+      summary: List all departments
+      tags:
+      - Departments
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Department'
+          description: ''
+  /api/accounts/departments/{id}/:
+    get:
+      operationId: accounts_departments_retrieve
+      description: Retrieves specific department information by its primary key ID.
+      summary: Retrieve department details
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Departments
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Department'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/accounts/forgot-password/:
+    post:
+      operationId: accounts_forgot_password_create
+      description: Generates a password reset token for the given registered email
+        address.
+      summary: Request password reset token (simulation)
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/accounts/login/:
+    post:
+      operationId: accounts_login_create
+      description: Authenticates credentials and issues a short-lived (15m) access
+        token and long-lived (7d) refresh token set in an HTTP-only cookie.
+      summary: User login with JWT and HTTP-only cookies
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/accounts/logout/:
+    post:
+      operationId: accounts_logout_create
+      description: Blacklists the active refresh token and clears both access and
+        refresh HTTP-only cookies.
+      summary: Logout and invalidate tokens
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogoutRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogoutRequestRequest'
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/accounts/me/:
+    get:
+      operationId: accounts_me_retrieve
+      description: Alias endpoint returning authenticated user's full profile details.
+      summary: Current user profile (Alias)
+      tags:
+      - Users & Profiles
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/accounts/profile/:
+    get:
+      operationId: accounts_profile_retrieve
+      description: Returns full authenticated user profile, allowance, earned points,
+        recognition stats, earned badges, and kudos history.
+      summary: Get detailed profile of current authenticated user
+      tags:
+      - Users & Profiles
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/accounts/reset-password/:
+    post:
+      operationId: accounts_reset_password_create
+      description: Resets the user's password using the uidb64 and token received
+        from the forgot-password flow.
+      summary: Reset password using reset token
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/accounts/signup/:
+    post:
+      operationId: accounts_signup_create
+      description: Registers a team member with name, email, password, department,
+        and avatar. Triggers simulated email verification.
+      summary: Register a new user account
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/accounts/token/refresh/:
+    post:
+      operationId: accounts_token_refresh_create
+      description: Reads the refresh token from the HTTP-only cookie or request body,
+        blacklists the old refresh token, rotates a new refresh token into the cookie,
+        and returns a new access token.
+      summary: Refresh access token with refresh-token rotation
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequestRequest'
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/accounts/users/:
+    get:
+      operationId: accounts_users_list
+      description: Retrieves paginated team members. Designed for Give Kudos modal
+        autocomplete and member search. Supports search by name/email, department
+        filtering, and auto-excludes authenticated sender.
+      summary: List / Search team members (User Autocomplete)
+      parameters:
+      - in: query
+        name: department
+        schema:
+          type: string
+        description: Filter by department name (Engineering, Design, etc.) or department
+          ID
+      - in: query
+        name: exclude_self
+        schema:
+          type: boolean
+        description: 'Exclude the currently authenticated user from results (default:
+          true in modal)'
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number for pagination
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Search query matching user name or email (e.g., "Alice" or "bob@")
+      tags:
+      - Users & Profiles
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserList'
+          description: ''
+  /api/accounts/users/{id}/:
+    get:
+      operationId: accounts_users_retrieve
+      description: Retrieves public details of a specific team member by ID.
+      summary: Retrieve user profile
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Users & Profiles
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/accounts/verify-email/:
+    post:
+      operationId: accounts_verify_email_create
+      description: Verifies the user email using the simulated verification token.
+      summary: Verify email address
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailVerificationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailVerificationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmailVerificationRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/kudos/:
+    get:
+      operationId: kudos_list
+      description: Retrieves a paginated feed of kudos ordered from newest to oldest.
+        Pre-fetches sender/receiver profiles and reactions to avoid N+1 database queries.
+        Optimized for React infinite scroll.
+      summary: Retrieve Company Kudos Feed
+      parameters:
+      - in: query
+        name: company_value
+        schema:
+          type: string
+        description: Filter kudos by company value (Teamwork, CustomerObsession, Innovation)
+      - in: query
+        name: department_id
+        schema:
+          type: integer
+        description: Filter kudos by receiver department ID
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number for infinite scroll pagination
+      - in: query
+        name: receiver_id
+        schema:
+          type: integer
+        description: Filter kudos received by specific user ID
+      - in: query
+        name: sender_id
+        schema:
+          type: integer
+        description: Filter kudos sent by specific user ID
+      tags:
+      - Kudos
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/KudosRead'
+          description: ''
+    post:
+      operationId: kudos_create
+      description: Awards a Kudo from the authenticated sender to a peer receiver.
+        Executes within a PostgreSQL database transaction with row-level locks (SELECT
+        FOR UPDATE) to guarantee atomic balance deduction, point crediting, kudo record
+        creation, and ledger logging.
+      summary: Give Kudos (Atomic Points Transfer)
+      tags:
+      - Kudos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KudosCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/KudosCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/KudosCreateRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KudosRead'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/kudos/{kudos_id}/reactions/:
+    get:
+      operationId: kudos_reactions_retrieve
+      description: Returns reaction counts and the authenticated user's current reactions
+        on this Kudo.
+      summary: Get reaction summary for a Kudo
+      parameters:
+      - in: path
+        name: kudos_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Reactions
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: kudos_reactions_create
+      description: "Adds a reaction (+1, \U0001F44F, \U0001F525) to a specific Kudo.
+        Enforces uniqueness so a user cannot duplicate the same emoji."
+      summary: Add an emoji reaction to a Kudo
+      parameters:
+      - in: path
+        name: kudos_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Reactions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReactionActionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReactionActionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReactionActionRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    delete:
+      operationId: kudos_reactions_destroy
+      description: Removes the user's previously submitted emoji reaction from the
+        Kudo.
+      summary: Remove an emoji reaction from a Kudo
+      parameters:
+      - in: path
+        name: kudos_id
+        schema:
+          type: integer
+        required: true
+      - in: query
+        name: reaction_type
+        schema:
+          type: string
+        description: "Emoji symbol to remove (+1, \U0001F44F, \U0001F525)"
+      tags:
+      - Reactions
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/kudos/{id}/:
+    get:
+      operationId: kudos_retrieve
+      description: Retrieves specific kudos message details including sender, receiver,
+        company value, points, and reactions.
+      summary: Retrieve Kudos detail
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Kudos
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KudosRead'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/leaderboard/:
+    get:
+      operationId: leaderboard_retrieve
+      description: Ranks active users based on earned Kudos points for the selected
+        or current calendar month. Supports department filtering (Engineering, Design,
+        Marketing, Sales). Uses efficient database-level aggregation to prevent N+1
+        queries.
+      summary: Get Monthly Kudos Leaderboard
+      parameters:
+      - in: query
+        name: department
+        schema:
+          type: string
+        description: Filter by department name (e.g., Engineering, Design, Marketing,
+          Sales) or department ID
+      - in: query
+        name: month
+        schema:
+          type: integer
+        description: Month number (1-12). Defaults to current month.
+      - in: query
+        name: year
+        schema:
+          type: integer
+        description: 4-digit year (e.g., 2026). Defaults to current year.
+      tags:
+      - Leaderboard
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/profile/:
+    get:
+      operationId: profile_retrieve
+      description: Returns full authenticated user profile, allowance, earned points,
+        recognition stats, earned badges, and kudos history.
+      summary: Get detailed profile of current authenticated user
+      tags:
+      - Users & Profiles
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/reactions/{kudos_id}/:
+    get:
+      operationId: reactions_retrieve
+      description: Returns reaction counts and the authenticated user's current reactions
+        on this Kudo.
+      summary: Get reaction summary for a Kudo
+      parameters:
+      - in: path
+        name: kudos_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Reactions
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: reactions_create
+      description: "Adds a reaction (+1, \U0001F44F, \U0001F525) to a specific Kudo.
+        Enforces uniqueness so a user cannot duplicate the same emoji."
+      summary: Add an emoji reaction to a Kudo
+      parameters:
+      - in: path
+        name: kudos_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Reactions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReactionActionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReactionActionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReactionActionRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    delete:
+      operationId: reactions_destroy
+      description: Removes the user's previously submitted emoji reaction from the
+        Kudo.
+      summary: Remove an emoji reaction from a Kudo
+      parameters:
+      - in: path
+        name: kudos_id
+        schema:
+          type: integer
+        required: true
+      - in: query
+        name: reaction_type
+        schema:
+          type: string
+        description: "Emoji symbol to remove (+1, \U0001F44F, \U0001F525)"
+      tags:
+      - Reactions
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/users/:
+    get:
+      operationId: users_list
+      description: Retrieves paginated team members. Designed for Give Kudos modal
+        autocomplete and member search. Supports search by name/email, department
+        filtering, and auto-excludes authenticated sender.
+      summary: List / Search team members (User Autocomplete)
+      parameters:
+      - in: query
+        name: department
+        schema:
+          type: string
+        description: Filter by department name (Engineering, Design, etc.) or department
+          ID
+      - in: query
+        name: exclude_self
+        schema:
+          type: boolean
+        description: 'Exclude the currently authenticated user from results (default:
+          true in modal)'
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number for pagination
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Search query matching user name or email (e.g., "Alice" or "bob@")
+      tags:
+      - Users & Profiles
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserList'
+          description: ''
+  /api/users/{id}/:
+    get:
+      operationId: users_retrieve
+      description: Retrieves public details of a specific team member by ID.
+      summary: Retrieve user profile
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Users & Profiles
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+components:
+  schemas:
+    CompanyValueEnum:
+      enum:
+      - Teamwork
+      - CustomerObsession
+      - Innovation
+      type: string
+      description: |-
+        * `Teamwork` - Teamwork
+        * `CustomerObsession` - Customer Obsession
+        * `Innovation` - Innovation
+    Department:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: Unique name of the department (e.g. Engineering, Sales).
+          maxLength: 100
+        description:
+          type: string
+          description: Optional description of the department's responsibilities.
+        user_count:
+          type: integer
+          readOnly: true
+          description: Number of active users belonging to this department.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when the department was created.
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when the department was last updated.
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+      - user_count
+    DepartmentSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: Unique name of the department (e.g. Engineering, Sales).
+          maxLength: 100
+      required:
+      - id
+      - name
+    EmailVerificationRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        token:
+          type: string
+          minLength: 1
+          maxLength: 128
+      required:
+      - email
+      - token
+    ForgotPasswordRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+      required:
+      - email
+    KudoHistory:
+      type: object
+      description: History card representation of a Kudos sent or received.
+      properties:
+        id:
+          type: integer
+        sender_id:
+          type: integer
+        sender_name:
+          type: string
+        sender_avatar:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+        receiver_id:
+          type: integer
+        receiver_name:
+          type: string
+        receiver_avatar:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+        points:
+          type: integer
+        message:
+          type: string
+        company_value:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - company_value
+      - created_at
+      - id
+      - message
+      - points
+      - receiver_avatar
+      - receiver_id
+      - receiver_name
+      - sender_avatar
+      - sender_id
+      - sender_name
+    KudosCreateRequest:
+      type: object
+      description: Serializer for creating a Kudo and initiating an atomic points
+        transfer.
+      properties:
+        receiver_id:
+          type: integer
+          description: Primary key ID of the registered peer receiving the kudo.
+        points:
+          allOf:
+          - $ref: '#/components/schemas/PointsEnum'
+          description: |-
+            Points to transfer. Allowed values: 10, 20, 50.
+
+            * `10` - 10 Points
+            * `20` - 20 Points
+            * `50` - 50 Points
+        message:
+          type: string
+          minLength: 5
+          description: Appreciation message (5 to 1000 characters).
+          maxLength: 1000
+        company_value:
+          allOf:
+          - $ref: '#/components/schemas/CompanyValueEnum'
+          description: |-
+            Core company value: Teamwork, CustomerObsession, Innovation.
+
+            * `Teamwork` - Teamwork
+            * `CustomerObsession` - Customer Obsession
+            * `Innovation` - Innovation
+      required:
+      - company_value
+      - message
+      - points
+      - receiver_id
+    KudosRead:
+      type: object
+      description: |-
+        Feed serializer for Kudos cards including sender/receiver info,
+        aggregated reaction counts, and requesting user's own reactions.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        sender:
+          allOf:
+          - $ref: '#/components/schemas/KudosUserSummary'
+          readOnly: true
+        receiver:
+          allOf:
+          - $ref: '#/components/schemas/KudosUserSummary'
+          readOnly: true
+        points:
+          allOf:
+          - $ref: '#/components/schemas/PointsEnum'
+          description: |-
+            Points awarded with the kudo (10, 20, or 50).
+
+            * `10` - 10 Points
+            * `20` - 20 Points
+            * `50` - 50 Points
+          minimum: 0
+          maximum: 32767
+        message:
+          type: string
+          description: Appreciation message explaining what the receiver achieved.
+          minLength: 5
+          maxLength: 1000
+        company_value:
+          allOf:
+          - $ref: '#/components/schemas/CompanyValueEnum'
+          description: |-
+            Company value / tag highlighted by this appreciation.
+
+            * `Teamwork` - Teamwork
+            * `CustomerObsession` - Customer Obsession
+            * `Innovation` - Innovation
+        reactions:
+          type: object
+          additionalProperties:
+            type: integer
+          readOnly: true
+          description: Aggregated reaction counts broken down by emoji.
+        user_reactions:
+          type: array
+          items:
+            type: string
+          readOnly: true
+          description: List of emoji reactions submitted by the current authenticated
+            user on this kudo.
+        total_reactions:
+          type: integer
+          readOnly: true
+          description: Total sum of all emoji reactions on this kudo.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when the kudo was created.
+      required:
+      - company_value
+      - created_at
+      - id
+      - message
+      - points
+      - reactions
+      - receiver
+      - sender
+      - total_reactions
+      - user_reactions
+    KudosUserSummary:
+      type: object
+      description: |-
+        Public minimal user information for sender and receiver on Kudos cards.
+        Guarantees no sensitive authentication data is ever exposed.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: Full name of the team member.
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          description: Corporate email address used for login and notifications.
+          maxLength: 255
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+          description: Profile avatar image for the user.
+        department_id:
+          type: integer
+          nullable: true
+          description: Department/team the user belongs to.
+          readOnly: true
+        department_name:
+          type: string
+          readOnly: true
+          nullable: true
+      required:
+      - department_id
+      - department_name
+      - email
+      - id
+      - name
+    LeaderboardEntry:
+      type: object
+      description: Serializer representing a ranked team member on the monthly leaderboard.
+      properties:
+        rank:
+          type: integer
+          description: Position on the leaderboard (1st, 2nd, etc.).
+        user_id:
+          type: integer
+          description: User ID.
+        name:
+          type: string
+          description: User's full name.
+        email:
+          type: string
+          format: email
+          description: User's email.
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+        department:
+          allOf:
+          - $ref: '#/components/schemas/DepartmentSummary'
+          readOnly: true
+        monthly_points:
+          type: integer
+          description: Total Kudos points earned during the selected month.
+        monthly_kudos_count:
+          type: integer
+          description: Total number of Kudos cards received this month.
+      required:
+      - avatar
+      - department
+      - email
+      - monthly_kudos_count
+      - monthly_points
+      - name
+      - rank
+      - user_id
+    LeaderboardResponse:
+      type: object
+      description: Metadata container for the monthly leaderboard.
+      properties:
+        period:
+          type: object
+          additionalProperties: {}
+          description: Year, month number, and month name of this leaderboard.
+        department:
+          type: string
+          nullable: true
+          description: Filter department name, or null for company-wide.
+        total_participants:
+          type: integer
+          description: Number of ranked participants.
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeaderboardEntry'
+          description: Ranked list of users.
+      required:
+      - department
+      - period
+      - results
+      - total_participants
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    LogoutRequestRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+          description: Optional refresh token to blacklist. If omitted, the 'refresh_token'
+            HTTP-only cookie will be used.
+    PaginatedUserList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+    PointsEnum:
+      enum:
+      - 10
+      - 20
+      - 50
+      type: integer
+      description: |-
+        * `10` - 10 Points
+        * `20` - 20 Points
+        * `50` - 50 Points
+    ReactionActionRequest:
+      type: object
+      description: Serializer for submitting or removing an emoji reaction on a Kudo.
+      properties:
+        reaction_type:
+          allOf:
+          - $ref: '#/components/schemas/ReactionTypeEnum'
+          description: "Reaction emoji. Allowed values: +1, \U0001F44F, \U0001F525\n\n*
+            `+1` - +1\n* `\U0001F44F` - \U0001F44F\n* `\U0001F525` - \U0001F525"
+      required:
+      - reaction_type
+    ReactionTypeEnum:
+      enum:
+      - '+1'
+      - "\U0001F44F"
+      - "\U0001F525"
+      type: string
+      description: "* `+1` - +1\n* `\U0001F44F` - \U0001F44F\n* `\U0001F525` - \U0001F525"
+    ResetPasswordRequest:
+      type: object
+      properties:
+        uidb64:
+          type: string
+          minLength: 1
+        token:
+          type: string
+          minLength: 1
+        new_password:
+          type: string
+          writeOnly: true
+          minLength: 8
+      required:
+      - new_password
+      - token
+      - uidb64
+    SignupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Full name of the team member.
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          minLength: 1
+          description: Corporate email address used for login and notifications.
+          maxLength: 255
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+          description: Password must be at least 8 characters.
+        department_id:
+          type: integer
+          nullable: true
+          description: ID of the department (e.g. Engineering, Design, Marketing,
+            Sales).
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+          description: Profile avatar image for the user.
+      required:
+      - email
+      - name
+      - password
+    TokenRefreshRequestRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+          description: Optional refresh token in request body. If omitted, the 'refresh_token'
+            HTTP-only cookie will be used.
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: Full name of the team member.
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          description: Corporate email address used for login and notifications.
+          maxLength: 255
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+          description: Profile avatar image for the user.
+        department:
+          allOf:
+          - $ref: '#/components/schemas/DepartmentSummary'
+          readOnly: true
+        giving_allowance:
+          type: integer
+          readOnly: true
+          description: Monthly/periodic points allowance available to award kudos
+            to peers.
+        givingAllowance:
+          type: integer
+          readOnly: true
+        earned_points:
+          type: integer
+          readOnly: true
+          description: Total accumulated points received through peer appreciation
+            kudos.
+        earnedPoints:
+          type: integer
+          readOnly: true
+        is_email_verified:
+          type: boolean
+          readOnly: true
+          description: Designates whether the user has verified their email address.
+        is_active:
+          type: boolean
+          readOnly: true
+          description: Designates whether this user should be treated as active.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when the user account was registered.
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when the user account was last modified.
+      required:
+      - created_at
+      - department
+      - earnedPoints
+      - earned_points
+      - email
+      - givingAllowance
+      - giving_allowance
+      - id
+      - is_active
+      - is_email_verified
+      - name
+      - updated_at
+    UserProfile:
+      type: object
+      description: |-
+        Comprehensive profile serializer for the authenticated user.
+        Shows user profile, allowance, earned points, badges, stats, and history.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: Full name of the team member.
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          description: Corporate email address used for login and notifications.
+          maxLength: 255
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+          description: Profile avatar image for the user.
+        department:
+          allOf:
+          - $ref: '#/components/schemas/DepartmentSummary'
+          readOnly: true
+        giving_allowance:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Monthly/periodic points allowance available to award kudos
+            to peers.
+        givingAllowance:
+          type: integer
+          readOnly: true
+        earned_points:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Total accumulated points received through peer appreciation
+            kudos.
+        earnedPoints:
+          type: integer
+          readOnly: true
+        is_email_verified:
+          type: boolean
+          description: Designates whether the user has verified their email address.
+        stats:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        earned_badges:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+        recent_received_kudos:
+          type: array
+          items:
+            $ref: '#/components/schemas/KudoHistory'
+          readOnly: true
+        recent_sent_kudos:
+          type: array
+          items:
+            $ref: '#/components/schemas/KudoHistory'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when the user account was registered.
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when the user account was last modified.
+      required:
+      - created_at
+      - department
+      - earnedPoints
+      - earned_badges
+      - email
+      - givingAllowance
+      - id
+      - name
+      - recent_received_kudos
+      - recent_sent_kudos
+      - stats
+      - updated_at
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    jwtCookieAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Bearer token via Authorization header or HTTP-only access_token
+        cookie.
+tags:
+- name: Authentication
+  description: Signup, email verification, login with JWT & HTTP-only cookies, token
+    rotation, logout, forgot password, and reset password.
+- name: Users & Profiles
+  description: Authenticated user profile, team directory, and user autocomplete search.
+- name: Kudos
+  description: Company kudos feed with filtering, kudos details, and atomic Give Kudos
+    point transfer.
+- name: Reactions
+  description: "Emoji reactions (+1, \U0001F44F, \U0001F525) on kudos cards."
+- name: Leaderboard
+  description: Monthly leaderboard rankings with department filtering.
+- name: Departments
+  description: Company departments listing and details.
