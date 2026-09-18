@@ -75,9 +75,95 @@ reacting to Kudos, and viewing monthly leaderboards.
 - Django
 - Django REST Framework
 - JWT Authentication
+- 
+## Database Setup
 
-### Database
-- PostgreSQL
+This project uses **PostgreSQL** as the primary database.
+
+### 1. Install PostgreSQL
+
+Install PostgreSQL on your system and make sure the PostgreSQL server is running.
+
+### 2. Create Database
+
+Create a PostgreSQL database for the project:
+
+
+CREATE DATABASE peer_kudos;
+
+
+You can also create the database using **pgAdmin**.
+
+### 3. Configure Environment Variables
+
+Create a `.env` file inside the `backend` directory:
+
+
+DB_NAME=peer_kudos
+DB_USER=postgres
+DB_PASSWORD=your_postgresql_password
+DB_HOST=localhost
+DB_PORT=5432
+
+
+Do not commit the `.env` file to GitHub.
+Use `.env.example` as a reference:
+
+DB_NAME=peer_kudos
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_HOST=localhost
+DB_PORT=5432
+
+
+### 4. Run Database Migrations
+
+From the `backend` directory, run:
+
+python manage.py makemigrations
+python manage.py migrate
+
+This will create the required database tables.
+
+### 5. Create Admin User
+
+Create a Django administrator account:
+
+
+python manage.py createsuperuser
+
+
+Follow the prompts to create the admin account.
+
+### 6. Add Demo Data
+
+To populate the database with sample users, departments and Kudos:
+
+
+python manage.py seed
+
+### 7. Reset Monthly Allowance
+
+The monthly giving allowance can be reset using:
+
+python manage.py reset_allowances
+
+
+This resets the giving allowance of active users to **100 points**.
+
+### Database Management
+
+The database can be managed using:
+
+* PostgreSQL
+* pgAdmin
+* Django Admin
+
+Django Admin:
+
+
+http://127.0.0.1:8000/admin/
+
 
 ### API Documentation
 - Swagger / OpenAPI
